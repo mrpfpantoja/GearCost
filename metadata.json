@@ -1,0 +1,6 @@
+{
+  "name": "GearCost - Arquitetura & Gestão Automotiva",
+  "description": "Especificação arquitetural, modelagem de dados e protótipo interativo do app GearCost para gestão de despesas, telemetria de desgaste e projetos stage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
