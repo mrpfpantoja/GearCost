@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'data/datasources/local/database_helper.dart';
+import 'domain/contracts/i_despesa_repository.dart';
+import 'domain/contracts/i_pecas_repository.dart';
+import 'domain/contracts/i_stages_repository.dart';
+import 'domain/contracts/i_veiculo_repository.dart';
+import 'domain/usecases/avaliar_telemetria_pecas_usecase.dart';
+import 'domain/usecases/calcular_custo_por_km_usecase.dart';
+import 'domain/usecases/validar_regras_veiculo_usecase.dart';
 import 'features/finance/data/repositories/despesa_repository.dart';
 import 'features/garage/data/repositories/pecas_repository.dart';
 import 'features/garage/data/repositories/veiculo_repository.dart';
@@ -26,29 +33,43 @@ class GearCostApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // 1. Provedores dos Repositórios (Injeção de Dependências desacoplada)
-        Provider<VeiculoRepository>(
+        // 1. Provedores dos Contratos Abstratos (DIP - Dependency Inversion Principle)
+        Provider<IVeiculoRepository>(
           create: (_) => VeiculoRepository(),
         ),
-        Provider<DespesaRepository>(
+        Provider<IDespesaRepository>(
           create: (_) => DespesaRepository(),
         ),
-        Provider<PecasRepository>(
+        Provider<IPecasRepository>(
           create: (_) => PecasRepository(),
         ),
-        Provider<StagesRepository>(
+        Provider<IStagesRepository>(
           create: (_) => StagesRepository(),
         ),
 
-        // 2. Provedor de Estado Reativo (ChangeNotifier)
-        // Conecta os repositórios injetados e dispara o carregamento inicial dos veículos
+        // 2. Provedores de Use Cases de Domínio (SRP - Single Responsibility Principle)
+        Provider<CalcularCustoPorKmUseCase>(
+          create: (_) => const CalcularCustoPorKmUseCase(),
+        ),
+        Provider<AvaliarTelemetriaPecasUseCase>(
+          create: (_) => const AvaliarTelemetriaPecasUseCase(),
+        ),
+        Provider<ValidarRegrasVeiculoUseCase>(
+          create: (_) => const ValidarRegrasVeiculoUseCase(),
+        ),
+
+        // 3. Provedor de Estado Reativo (ChangeNotifier)
+        // Conecta os contratos e use cases injetados via abstrações
         ChangeNotifierProvider<GaragemController>(
           create: (context) {
             final controller = GaragemController(
-              veiculoRepo: context.read<VeiculoRepository>(),
-              despesaRepo: context.read<DespesaRepository>(),
-              pecasRepo: context.read<PecasRepository>(),
-              stagesRepo: context.read<StagesRepository>(),
+              veiculoRepo: context.read<IVeiculoRepository>(),
+              despesaRepo: context.read<IDespesaRepository>(),
+              pecasRepo: context.read<IPecasRepository>(),
+              stagesRepo: context.read<IStagesRepository>(),
+              calculoUseCase: context.read<CalcularCustoPorKmUseCase>(),
+              telemetriaUseCase: context.read<AvaliarTelemetriaPecasUseCase>(),
+              regrasUseCase: context.read<ValidarRegrasVeiculoUseCase>(),
             );
             // Carrega os dados locais do SQLite imediatamente
             controller.carregarVeiculos();

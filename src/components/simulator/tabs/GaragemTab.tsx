@@ -222,33 +222,6 @@ export const GaragemTab: React.FC<GaragemTabProps> = ({
                 </button>
               </div>
             </div>
-
-            {/* Simulador Interativo do Odômetro (Arrastar para Teste Rápido) */}
-            <div className="mt-3 pt-3 border-t border-slate-800/80">
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="flex items-center gap-1 font-medium text-slate-300">
-                  <Gauge className="w-3.5 h-3.5 text-orange-400" />
-                  Arrasto Rápido de Teste:
-                </span>
-                <span className="font-mono text-orange-400 font-bold">
-                  {veiculoAtual.kmAtual.toLocaleString('pt-BR')} KM
-                </span>
-              </div>
-              <input
-                type="range"
-                min="50000"
-                max="85000"
-                step="500"
-                value={veiculoAtual.kmAtual}
-                onChange={(e) => onUpdateKm(veiculoAtual.id, parseFloat(e.target.value))}
-                className="w-full mt-2 accent-orange-500 cursor-pointer"
-              />
-              <div className="flex justify-between text-[9px] text-slate-500 font-mono mt-1">
-                <span>50.000 KM</span>
-                <span>67.500 KM</span>
-                <span>85.000 KM</span>
-              </div>
-            </div>
           </div>
 
           {/* Alerta Crítico se houver peças >= 90% */}

@@ -19,11 +19,12 @@ import {
 } from 'lucide-react';
 import { FLUTTER_CODE_SNIPPETS, CodeSnippet } from '../data/flutterCodeSnippets';
 import { UMLViewer } from './UMLViewer';
+import { SolidArchitectureViewer } from './SolidArchitectureViewer';
 
 export const ArchitectureHub: React.FC = () => {
-  const [activeSnippetId, setActiveSnippetId] = useState<string>('folder-structure');
+  const [activeSnippetId, setActiveSnippetId] = useState<string>('solid-architecture');
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'code' | 'uml'>('code');
+  const [viewMode, setViewMode] = useState<'solid' | 'code' | 'uml'>('solid');
 
   const activeSnippet = FLUTTER_CODE_SNIPPETS.find(s => s.id === activeSnippetId) || FLUTTER_CODE_SNIPPETS[0];
 
@@ -35,6 +36,7 @@ export const ArchitectureHub: React.FC = () => {
 
   const getIcon = (id: string) => {
     switch (id) {
+      case 'solid-architecture': return ShieldCheck;
       case 'folder-structure': return FolderTree;
       case 'pubspec-yaml': return Package;
       case 'database-helper': return Database;
@@ -66,38 +68,51 @@ export const ArchitectureHub: React.FC = () => {
             </h2>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Arquitetura Clean MVVM, persistência relacional SQLite (ACID) e consumo encadeado da API Fipe
+            Arquitetura SOLID de Baixo Acoplamento, Clean MVVM, SQLite ACID e Inversão de Dependências
           </p>
         </div>
 
-        {/* Alternador de Modo: Código vs Diagrama UML */}
+        {/* Alternador de Modo: SOLID vs Código vs Diagrama UML */}
         <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
           <button
+            onClick={() => setViewMode('solid')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              viewMode === 'solid'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            Princípios SOLID
+          </button>
+          <button
             onClick={() => setViewMode('code')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               viewMode === 'code'
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Code2 className="w-4 h-4" />
-            Códigos dos 10 Entregáveis
+            Snippets & Código
           </button>
           <button
             onClick={() => setViewMode('uml')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
               viewMode === 'uml'
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <Layers className="w-4 h-4" />
-            Diagrama UML Interativo
+            Diagrama UML
           </button>
         </div>
       </div>
 
-      {viewMode === 'uml' ? (
+      {viewMode === 'solid' ? (
+        <SolidArchitectureViewer />
+      ) : viewMode === 'uml' ? (
         <UMLViewer />
       ) : (
         <div className="space-y-6">

@@ -1,6 +1,7 @@
 import { CodeSnippet } from './types';
 import { folderStructureSnippet } from './architecture/folderStructureSnippet';
 import { pubspecYamlSnippet } from './architecture/pubspecYamlSnippet';
+import { solidArchitectureSnippet } from './architecture/solidArchitectureSnippet';
 import { databaseHelperSnippet } from './database/databaseHelperSnippet';
 import { repositoriesSnippet } from './database/repositoriesSnippet';
 import { fipeServiceSnippet } from './service/fipeServiceSnippet';
@@ -16,6 +17,7 @@ export * from './types';
 export {
   folderStructureSnippet,
   pubspecYamlSnippet,
+  solidArchitectureSnippet,
   databaseHelperSnippet,
   repositoriesSnippet,
   fipeServiceSnippet,
@@ -31,6 +33,7 @@ export {
 export const FLUTTER_CODE_SNIPPETS: CodeSnippet[] = [
   folderStructureSnippet,
   pubspecYamlSnippet,
+  solidArchitectureSnippet,
   databaseHelperSnippet,
   repositoriesSnippet,
   fipeServiceSnippet,

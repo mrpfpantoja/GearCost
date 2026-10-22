@@ -1,9 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../data/datasources/local/database_helper.dart';
+import '../../../../domain/contracts/i_stages_repository.dart';
 import '../../../../domain/models/models.dart';
 
 /// Repositório para o roadmap de stages e modificações veiculares
-class StagesRepository {
+/// Implementa IStagesRepository (ISP e DIP)
+class StagesRepository implements IStagesRepository {
   final DatabaseHelper _dbHelper;
 
   StagesRepository({DatabaseHelper? dbHelper})

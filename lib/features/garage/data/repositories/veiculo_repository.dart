@@ -1,10 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../data/datasources/local/database_helper.dart';
+import '../../../../domain/contracts/i_veiculo_repository.dart';
 import '../../../../domain/models/models.dart';
 
 /// Repositório de acesso a dados locais para a entidade Veiculo
-/// Responsável pela persistência, carregamento agregador e atualização de odômetro
-class VeiculoRepository {
+/// Implementa o contrato IVeiculoRepository (ISP e DIP)
+class VeiculoRepository implements IVeiculoRepository {
   final DatabaseHelper _dbHelper;
 
   VeiculoRepository({DatabaseHelper? dbHelper})

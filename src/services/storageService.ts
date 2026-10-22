@@ -1,120 +1,71 @@
 import { Veiculo, Usuario } from '../types/gearcost';
-import { INITIAL_VEICULOS, DEFAULT_USUARIO } from '../data/mockData';
+import { ServiceContainer } from './storage/ServiceContainer';
 
-const STORAGE_KEYS = {
-  VEICULOS: '@GearCost:veiculos',
-  SELECTED_VEICULO_ID: '@GearCost:selectedVeiculoId',
-  USUARIO: '@GearCost:usuario',
-} as const;
-
+/**
+ * [Facade Pattern & Backward Compatibility]
+ * Fachada para compatibilidade com a interface existente do simulador web,
+ * agora orquestrada de forma desacoplada pelos repositórios e serviços de domínio (SOLID).
+ */
 export class StorageService {
+  private static vehicleRepo = ServiceContainer.getVehicleRepository();
+  private static userRepo = ServiceContainer.getUserRepository();
+  private static prefRepo = ServiceContainer.getPreferenceRepository();
+
   /**
-   * Obtém a lista de veículos gravada no localStorage.
-   * Se nenhuma lista for encontrada ou se houver erro no parse,
-   * inicializa com a lista mockada INITIAL_VEICULOS e salva no storage.
+   * Obtém a lista de veículos através do IVehicleRepository
    */
   static getVeiculos(): Veiculo[] {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.VEICULOS);
-      if (!data) {
-        StorageService.saveVeiculos(INITIAL_VEICULOS);
-        return INITIAL_VEICULOS;
-      }
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-      StorageService.saveVeiculos(INITIAL_VEICULOS);
-      return INITIAL_VEICULOS;
-    } catch (error) {
-      console.error('[StorageService] Erro ao carregar veículos do localStorage:', error);
-      return INITIAL_VEICULOS;
-    }
+    const result = StorageService.vehicleRepo.getVeiculos();
+    return Array.isArray(result) ? result : [];
   }
 
   /**
-   * Persiste a lista completa de veículos no localStorage.
+   * Persiste a lista completa de veículos através do IVehicleRepository
    */
   static saveVeiculos(veiculos: Veiculo[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.VEICULOS, JSON.stringify(veiculos));
-    } catch (error) {
-      console.error('[StorageService] Erro ao salvar veículos no localStorage:', error);
-    }
+    StorageService.vehicleRepo.saveVeiculos(veiculos);
   }
 
   /**
-   * Obtém o ID do veículo atualmente selecionado.
-   * Se não existir, retorna o defaultId fornecido e o persiste.
+   * Obtém o ID do veículo atualmente selecionado através do IPreferenceRepository
    */
   static getSelectedVeiculoId(defaultId: string = '1'): string {
-    try {
-      const id = localStorage.getItem(STORAGE_KEYS.SELECTED_VEICULO_ID);
-      if (id) {
-        return id;
-      }
-      StorageService.saveSelectedVeiculoId(defaultId);
-      return defaultId;
-    } catch (error) {
-      console.error('[StorageService] Erro ao carregar veículo selecionado:', error);
-      return defaultId;
-    }
+    const result = StorageService.prefRepo.getSelectedVeiculoId(defaultId);
+    return typeof result === 'string' ? result : defaultId;
   }
 
   /**
-   * Persiste o ID do veículo selecionado no localStorage.
+   * Persiste o ID do veículo selecionado através do IPreferenceRepository
    */
   static saveSelectedVeiculoId(id: string): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SELECTED_VEICULO_ID, id);
-    } catch (error) {
-      console.error('[StorageService] Erro ao salvar veículo selecionado:', error);
-    }
+    StorageService.prefRepo.saveSelectedVeiculoId(id);
   }
 
   /**
-   * Obtém o usuário autenticado salvo no localStorage.
-   * Caso não haja registro prévio, retorna o usuário padrão (DEFAULT_USUARIO).
+   * Obtém o usuário autenticado através do IUserRepository
    */
   static getUsuario(): Usuario | null {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.USUARIO);
-      if (!data) {
-        StorageService.saveUsuario(DEFAULT_USUARIO);
-        return DEFAULT_USUARIO;
-      }
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('[StorageService] Erro ao carregar usuário do localStorage:', error);
-      return DEFAULT_USUARIO;
-    }
+    const result = StorageService.userRepo.getUsuario();
+    return result as Usuario | null;
   }
 
   /**
-   * Persiste os dados do usuário autenticado ou limpa a chave se null.
+   * Persiste os dados do usuário através do IUserRepository
    */
   static saveUsuario(usuario: Usuario | null): void {
-    try {
-      if (usuario === null) {
-        localStorage.removeItem(STORAGE_KEYS.USUARIO);
-      } else {
-        localStorage.setItem(STORAGE_KEYS.USUARIO, JSON.stringify(usuario));
-      }
-    } catch (error) {
-      console.error('[StorageService] Erro ao salvar usuário no localStorage:', error);
-    }
+    StorageService.userRepo.saveUsuario(usuario);
   }
 
   /**
-   * Limpa todos os dados salvos pelo GearCost no localStorage e restaura os padrões.
+   * Limpa os dados do armazenamento
    */
   static clearStorage(): void {
     try {
-      localStorage.removeItem(STORAGE_KEYS.VEICULOS);
-      localStorage.removeItem(STORAGE_KEYS.SELECTED_VEICULO_ID);
-      localStorage.removeItem(STORAGE_KEYS.USUARIO);
+      localStorage.removeItem('@GearCost:veiculos');
+      localStorage.removeItem('@GearCost:selectedVeiculoId');
+      localStorage.removeItem('@GearCost:usuario');
     } catch (error) {
-      console.error('[StorageService] Erro ao limpar dados do localStorage:', error);
+      console.error('[StorageService] Erro ao limpar dados:', error);
     }
   }
 }

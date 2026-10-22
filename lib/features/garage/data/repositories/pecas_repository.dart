@@ -1,9 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../data/datasources/local/database_helper.dart';
+import '../../../../domain/contracts/i_pecas_repository.dart';
 import '../../../../domain/models/models.dart';
 
 /// Repositório para peças monitoradas e telemetria de componentes / pneus
-class PecasRepository {
+/// Implementa IPecasRepository (ISP e DIP)
+class PecasRepository implements IPecasRepository {
   final DatabaseHelper _dbHelper;
 
   PecasRepository({DatabaseHelper? dbHelper})

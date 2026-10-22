@@ -1,9 +1,11 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../data/datasources/local/database_helper.dart';
+import '../../../../domain/contracts/i_despesa_repository.dart';
 import '../../../../domain/models/models.dart';
 
 /// Repositório de acesso a dados locais para despesas (combustível, manutenção, impostos, upgrades)
-class DespesaRepository {
+/// Implementa IDespesaRepository (ISP e DIP)
+class DespesaRepository implements IDespesaRepository {
   final DatabaseHelper _dbHelper;
 
   DespesaRepository({DatabaseHelper? dbHelper})

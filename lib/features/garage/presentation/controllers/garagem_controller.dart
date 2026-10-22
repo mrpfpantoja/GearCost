@@ -1,5 +1,12 @@
 import 'package:flutter/foundation.dart';
+import '../../../../domain/contracts/i_despesa_repository.dart';
+import '../../../../domain/contracts/i_pecas_repository.dart';
+import '../../../../domain/contracts/i_stages_repository.dart';
+import '../../../../domain/contracts/i_veiculo_repository.dart';
 import '../../../../domain/models/models.dart';
+import '../../../../domain/usecases/avaliar_telemetria_pecas_usecase.dart';
+import '../../../../domain/usecases/calcular_custo_por_km_usecase.dart';
+import '../../../../domain/usecases/validar_regras_veiculo_usecase.dart';
 import '../../../finance/data/repositories/despesa_repository.dart';
 import '../../../stages/data/repositories/stages_repository.dart';
 import '../../data/repositories/pecas_repository.dart';
@@ -7,21 +14,35 @@ import '../../data/repositories/veiculo_repository.dart';
 
 /// Controller reativo (ChangeNotifier - MVVM) para gerenciamento da Garagem,
 /// Telemetria de Desgaste, Módulo Financeiro e Roadmap de Stages.
+/// Refatorado segundo os princípios SOLID:
+/// - DIP: Depende de abstrações (IVeiculoRepository, etc.) e não de implementações concretas
+/// - SRP: Delega regras de negócio, telemetria e cálculos para UseCases especializados
 class GaragemController extends ChangeNotifier {
-  final VeiculoRepository _veiculoRepo;
-  final DespesaRepository _despesaRepo;
-  final PecasRepository _pecasRepo;
-  final StagesRepository _stagesRepo;
+  final IVeiculoRepository _veiculoRepo;
+  final IDespesaRepository _despesaRepo;
+  final IPecasRepository _pecasRepo;
+  final IStagesRepository _stagesRepo;
+
+  // Domain Use Cases (SRP)
+  final CalcularCustoPorKmUseCase _calculoUseCase;
+  final AvaliarTelemetriaPecasUseCase _telemetriaUseCase;
+  final ValidarRegrasVeiculoUseCase _regrasUseCase;
 
   GaragemController({
-    VeiculoRepository? veiculoRepo,
-    DespesaRepository? despesaRepo,
-    PecasRepository? pecasRepo,
-    StagesRepository? stagesRepo,
+    IVeiculoRepository? veiculoRepo,
+    IDespesaRepository? despesaRepo,
+    IPecasRepository? pecasRepo,
+    IStagesRepository? stagesRepo,
+    CalcularCustoPorKmUseCase? calculoUseCase,
+    AvaliarTelemetriaPecasUseCase? telemetriaUseCase,
+    ValidarRegrasVeiculoUseCase? regrasUseCase,
   })  : _veiculoRepo = veiculoRepo ?? VeiculoRepository(),
         _despesaRepo = despesaRepo ?? DespesaRepository(),
         _pecasRepo = pecasRepo ?? PecasRepository(),
-        _stagesRepo = stagesRepo ?? StagesRepository();
+        _stagesRepo = stagesRepo ?? StagesRepository(),
+        _calculoUseCase = calculoUseCase ?? const CalcularCustoPorKmUseCase(),
+        _telemetriaUseCase = telemetriaUseCase ?? const AvaliarTelemetriaPecasUseCase(),
+        _regrasUseCase = regrasUseCase ?? const ValidarRegrasVeiculoUseCase();
 
   // ==========================================================================
   // ESTADO REATIVO
@@ -38,19 +59,38 @@ class GaragemController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get temVeiculoAtivo => _veiculoAtivo != null;
 
-  // Getters computados de conveniência para a UI
-  double get custoTotal => _veiculoAtivo?.calcularCustoTotal() ?? 0.0;
-  double get custoPorKm => _veiculoAtivo?.calcularCustoPorKm() ?? 0.0;
+  // Getters computados delegados aos UseCases (SRP)
+  double get custoTotal => _veiculoAtivo != null
+      ? _calculoUseCase.calcularCustoTotal(_veiculoAtivo!.despesas)
+      : 0.0;
+
+  double get custoPorKm => _veiculoAtivo != null
+      ? _calculoUseCase.executar(_veiculoAtivo!)
+      : 0.0;
+
   double get odometroAtual => _veiculoAtivo?.kmAtual ?? 0.0;
 
   List<PecaMonitorada> get pecasCriticas {
     if (_veiculoAtivo == null) return [];
-    return _veiculoAtivo!.pecas
-        .where((p) => p.precisaSubstituicao(_veiculoAtivo!.kmAtual))
-        .toList();
+    return _telemetriaUseCase.obterPecasCriticas(
+      _veiculoAtivo!.pecas,
+      _veiculoAtivo!.kmAtual,
+    );
   }
 
-  int get totalAlertasCriticos => pecasCriticas.length;
+  int get totalAlertasCriticos => _veiculoAtivo != null
+      ? _telemetriaUseCase.contarAlertasCriticos(
+          _veiculoAtivo!.pecas,
+          _veiculoAtivo!.kmAtual,
+        )
+      : 0;
+
+  double get indiceSaudeFrota => _veiculoAtivo != null
+      ? _telemetriaUseCase.calcularIndiceSaude(
+          _veiculoAtivo!.pecas,
+          _veiculoAtivo!.kmAtual,
+        )
+      : 100.0;
 
   // ==========================================================================
   // CARREGAMENTO E INICIALIZAÇÃO
@@ -111,8 +151,9 @@ class GaragemController extends ChangeNotifier {
   Future<void> atualizarKm(double novoKm) async {
     if (_veiculoAtivo == null || _veiculoAtivo!.id == null) return;
 
-    if (novoKm < _veiculoAtivo!.kmAtual) {
-      _errorMessage = 'O novo KM não pode ser menor que o atual (${_veiculoAtivo!.kmAtual} km).';
+    final erroValidacao = _regrasUseCase.validarNovoKm(_veiculoAtivo!.kmAtual, novoKm);
+    if (erroValidacao != null) {
+      _errorMessage = erroValidacao;
       notifyListeners();
       return;
     }
@@ -351,8 +392,9 @@ class GaragemController extends ChangeNotifier {
   /// Deleta um veículo no SQLite (com ON DELETE CASCADE em despesas, peças e stages)
   /// e ajusta automaticamente o veículo ativo para o primeiro remanescente caso o deletado estivesse ativo.
   Future<void> deletarVeiculo(int veiculoId) async {
-    if (_veiculos.length <= 1) {
-      _errorMessage = 'Não é permitido excluir o único veículo da garagem.';
+    final erroValidacao = _regrasUseCase.validarExclusaoVeiculo(_veiculos, veiculoId);
+    if (erroValidacao != null) {
+      _errorMessage = erroValidacao;
       notifyListeners();
       return;
     }
